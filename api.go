@@ -1,7 +1,6 @@
 package main
 
 import (
-	"./outputFormatter"
 	"./sqlParser"
 	"./urlParser"
 	"encoding/json"
@@ -52,54 +51,22 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	//note: tableName could also refer to a view
 	tableName := request.TableName
 	tableParameters := request.Parameters
-
 	//for error p urposes
-	var err error
-	errString := ""
-
-	isTable := sqlParser.IsTable(tableName)
-
-	if r.Method == "POST" {
-		bodyStr, _ := ioutil.ReadAll(r.Body)
-		tableName, err = sqlParser.Post(tableName, bodyStr)
-		if err != nil {
-			errString = err.Error()
-		}
-	} else if r.Method == "DELETE" {
-		dropTable, err := sqlParser.Delete(tableName, tableParameters)
-		if err != nil {
-			errString = err.Error()
-		} //clear if view
-		if dropTable {
-			tableName = ""
-		}
-
-		tableParameters = tableParameters[:0]
-	} else if r.Method == "PUT" {
-		bodyStr, _ := ioutil.ReadAll(r.Body)
-		err = sqlParser.Put(tableName, tableParameters, bodyStr)
-		if err != nil {
-			errString = err.Error()
-		}
-		tableParameters = tableParameters[:0]
-	}
 
 	var rows []map[string]interface{}
-	var columns []string
 	//GETS the request
 	if tableName != "" {
-		rows, err = sqlParser.Get(tableName)
-		columns = sqlParser.GetColumnNames(tableName)
-		if err != nil {
-			errString = err.Error()
-		}
+		rows, _ = sqlParser.Get(tableName, tableParameters)
+		/*if err != nil {*/
+		/*errString = err.Error()*/
+		/*}*/
 	} else {
 		rows = nil
 	}
-	resp := outputFormatter.MakeApiWrapper(rows, columns, errString, isTable)
+
 	//encoder writes the resultant "Response" struct (see outputFormatter) to writer
 	enc := json.NewEncoder(w)
-	enc.Encode(resp)
+	enc.Encode(rows)
 
 }
 

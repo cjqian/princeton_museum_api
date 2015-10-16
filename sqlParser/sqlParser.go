@@ -95,55 +95,9 @@ func GetColumnNames(tableName string) []string {
 }
 
 /*********************************************************************************
- * DELETE FUNCTIONALITY
- ********************************************************************************/
-func Delete(serverTableName string, parameters []string) (bool, error) {
-	if !IsTable(serverTableName) {
-		return DeleteFromView(serverTableName, parameters)
-	} else {
-		return false, DeleteFromTable(serverTableName, parameters)
-	}
-}
-
-//deletes from a table
-func DeleteFromTable(tableName string, parameters []string) error {
-	return RunDeleteQuery(tableName, parameters)
-}
-
-//deletes from a view
-func DeleteFromView(viewName string, parameters []string) (bool, error) {
-	if len(parameters) == 0 {
-		qStr := "drop view " + viewName
-		_, err := globalDB.Query(qStr)
-		return true, err
-	} else {
-		return false, RunDeleteQuery(viewName, parameters)
-	}
-}
-
-//runs query of format "delete from tableName where parameterA=valueA and..."
-func RunDeleteQuery(serverTableName string, parameters []string) error {
-	//delete from tableName where x = a and y = b
-	query := "delete from " + serverTableName
-
-	if len(parameters) > 0 {
-		query += " where "
-
-		for _, v := range parameters {
-			query += v + " and "
-		}
-		//removes last "and"
-		query = query[:len(query)-4]
-	}
-
-	_, err := globalDB.Query(query)
-	return err
-}
-
-/*********************************************************************************
  * GET FUNCTIONALITY
  ********************************************************************************/
-func Get(tableName string) ([]map[string]interface{}, error) {
+func Get(tableName string, tableParameters []string) ([]map[string]interface{}, error) {
 	regStr := ""
 	joinStr := ""
 	onStr := ""
@@ -162,6 +116,19 @@ func Get(tableName string) ([]map[string]interface{}, error) {
 	queryStr := "select " + regStr + joinStr + " from " + tableName + " "
 
 	queryStr += onStr
+
+	//where
+	if len(tableParameters) > 0 {
+		queryStr += " where "
+
+		for _, v := range tableParameters {
+			queryStr += v + " and "
+		}
+
+		queryStr = queryStr[:len(queryStr)-4]
+	}
+
+	fmt.Println(queryStr)
 	//do the query
 	rows, err := globalDB.Queryx(queryStr)
 	if err != nil {
@@ -192,165 +159,4 @@ func Get(tableName string) ([]map[string]interface{}, error) {
 	}
 
 	return rowArray, nil
-}
-
-/*********************************************************************************
- * POST FUNCTIONALITY
- ********************************************************************************/
-func Post(tableName string, jsonByte []byte) (string, error) {
-	if IsTable(tableName) {
-		err := PostRows(tableName, jsonByte)
-		return tableName, err
-	} else {
-		return PostViews(jsonByte)
-	}
-}
-
-//adds new row to table
-func AddRow(newRow interface{}, tableName string) error {
-	m := newRow.(map[string]interface{})
-	//insert into table (colA, colB) values (valA, valB);
-	query := "INSERT INTO " + tableName + " ("
-	keyStr := ""
-	valueStr := ""
-
-	for k, v := range m {
-		keyStr += k + ","
-		typeStr, err := TypeToString(v)
-		if err != nil {
-			return err
-		}
-
-		valueStr += "'" + typeStr + "',"
-	}
-
-	keyStr = keyStr[:len(keyStr)-1]
-	valueStr = valueStr[:len(valueStr)-1]
-
-	query += keyStr + ") VALUES ( " + valueStr + " );"
-	_, err := globalDB.Query(query)
-	fmt.Println(query)
-	return err
-}
-
-func AddRows(newRows []interface{}, tableName string) error {
-	for _, row := range newRows {
-		err := AddRow(row, tableName)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-//adds JSON from FILENAME to TABLE
-//CURRENTLY ONLY ONE ROW
-func PostRows(tableName string, jsonByte []byte) error {
-	var f []interface{}
-
-	err := json.Unmarshal(jsonByte, &f)
-	if err != nil {
-		return err
-	}
-
-	err2 := AddRows(f, tableName)
-	if err2 != nil {
-		return err
-	}
-
-	return nil
-}
-
-//view details are marshalled into this View struct
-type View struct {
-	Name  string
-	Query string
-}
-
-//adds JSON from FILENAME to TABLE
-func PostViews(jsonByte []byte) (string, error) {
-	var views []View
-
-	err := json.Unmarshal(jsonByte, &views)
-	if err != nil {
-		return "", err
-	}
-
-	var viewName string
-	for _, view := range views {
-		viewName = view.Name
-		err = MakeView(view.Name, view.Query)
-		if err != nil {
-			return viewName, err
-		}
-	}
-
-	return viewName, nil
-}
-
-func MakeView(viewName string, view string) error {
-	qStr := "create view " + viewName + " as " + view
-	_, err := globalDB.Query(qStr)
-	tableMap = GetTableMap()
-	return err
-}
-
-/*********************************************************************************
- * PUT FUNCTIONALITY
- ********************************************************************************/
-func Put(tableName string, parameters []string, jsonByte []byte) error {
-	//unmarshals the json into an interface
-	var f []interface{}
-	err := json.Unmarshal(jsonByte, &f)
-	if err != nil {
-		return err
-	}
-	//adds the interface row to table in database
-	return UpdateRows(f, tableName, parameters)
-}
-
-func UpdateRows(newRows []interface{}, tableName string, parameters []string) error {
-	for _, row := range newRows {
-		err := UpdateRow(row, tableName, parameters)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func UpdateRow(newRow interface{}, tableName string, parameters []string) error {
-	query := "update " + tableName
-
-	updateParameters := newRow.(map[string]interface{})
-	//new changes
-	if len(updateParameters) > 0 {
-		query += " set "
-
-		for k, v := range updateParameters {
-			typeStr, err := TypeToString(v)
-			if err != nil {
-				return err
-			}
-			query += k + "='" + typeStr + "', "
-		}
-
-		query = query[:len(query)-2]
-	}
-
-	//where
-	if len(parameters) > 0 {
-		query += " where "
-
-		for _, v := range parameters {
-			query += v + " and "
-		}
-
-		query = query[:len(query)-4]
-	}
-
-	_, err := globalDB.Query(query)
-	return err
 }
