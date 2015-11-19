@@ -3,7 +3,8 @@ package sqlParser
 import (
 	_ "./mysql"
 	"./sqlx"
-	"encoding/json"
+	"strconv"
+	//	"encoding/json"
 	"fmt"
 )
 
@@ -37,6 +38,22 @@ func InitializeDatabase(username string, password string, environment string) sq
 /*********************************************************************************
  * HELPER FUNCTIONS
  ********************************************************************************/
+/*//returns if a string is in an array*/
+/*func StringInArray(str string, set []string) bool {*/
+/*for curstr := range set {*/
+/*if str == curstr {*/
+/*return true*/
+/*}*/
+/*}*/
+
+/*return false*/
+/*}*/
+
+/*// given the id in table colName, return an interface of that item given id*/
+/*func GetMultiValues(id int, colName string) interface{} {*/
+
+/*}*/
+
 //if is table, returns 1. else (for example, is view), returns 0.
 func IsTable(serverTableName string) bool {
 	//check if there is view. else, assume is table
@@ -94,6 +111,40 @@ func GetColumnNames(tableName string) []string {
 	return colNames
 }
 
+//returns one-to-many structure given objectID, original table, target table, and
+//connecting table
+func GetOneToMany(objectID int, oTable string, tTable string, tIDname string, cTable string, cIDname string) interface{} {
+	queryStr := "select " + tTable + ".* from " + cTable + " INNER JOIN " + oTable + " ON " + cTable + "." + cIDname + " = " + oTable + ".ObjectID INNER JOIN " + tTable + " ON " + cTable + "." + tIDname + " = " + tTable + "." + tIDname + " where " + oTable + ".ObjectID =" + strconv.Itoa(objectID)
+	rows, err := globalDB.Queryx(queryStr)
+	if err != nil {
+		panic(err)
+	}
+
+	rowArray := make([]map[string]interface{}, 0)
+
+	//for each row
+	for rows.Next() {
+		//map the column name to its value
+		results := make(map[string]interface{}, 0)
+		err = rows.MapScan(results)
+		if err != nil {
+			panic(err)
+		}
+
+		for k, v := range results {
+			if b, ok := v.([]byte); ok {
+				results[k], err = StringToType(b, colTypeMap[k])
+				if err != nil {
+					panic(err)
+				}
+			}
+		}
+
+		rowArray = append(rowArray, results)
+	}
+	return rowArray
+}
+
 /*********************************************************************************
  * GET FUNCTIONALITY
  ********************************************************************************/
@@ -138,21 +189,44 @@ func Get(tableName string, tableParameters []string) ([]map[string]interface{}, 
 	//map into an array of type map[colName]value
 	rowArray := make([]map[string]interface{}, 0)
 
+	//for each row
 	for rows.Next() {
+		//map the column name to its value
 		results := make(map[string]interface{}, 0)
 		err = rows.MapScan(results)
 		if err != nil {
 			return nil, err
 		}
 
+		var objectIDstring string = "ObjectID"
+		var objectIDval int = -1
 		for k, v := range results {
+
+			//if this is a special exception, we map
+			/*if stringInArray(k, multiSet) {*/
+			/*// new interface has multi values*/
+			/*results[k], err = getMultiValues(v.(int), k)*/
+			/*if err != nil {*/
+			/*return nil, err*/
+			/*}*/
+			/*}*/
 			//converts the byte array to its correct type
+			//else {
+
 			if b, ok := v.([]byte); ok {
 				results[k], err = StringToType(b, colTypeMap[k])
 				if err != nil {
 					return nil, err
 				}
+				if k == objectIDstring {
+					objectIDval = results[k].(int)
+					results["Constituents"] = GetOneToMany(objectIDval, "apiobjects", "apiconstituents", "ConstituentID", "apiconobjxrefs", "ObjectID")
+					results["Media"] = GetOneToMany(objectIDval, "apiobjects", "apimedia", "MediaMasterID", "apimediaxrefs", "ID")
+					results["Dimensions"] = GetOneToMany(objectIDval, "apiobjects", "apidimelements", "DimItemElemXrefID", "apidimobjxrefs", "ObjectID")
+				}
 			}
+
+			// }
 		}
 
 		rowArray = append(rowArray, results)

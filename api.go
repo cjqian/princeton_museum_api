@@ -51,7 +51,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	//note: tableName could also refer to a view
 	tableName := request.TableName
 	tableParameters := request.Parameters
-	//for error p urposes
+	//for error purposes
 
 	var rows []map[string]interface{}
 	//GETS the request
@@ -67,7 +67,6 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	//encoder writes the resultant "Response" struct (see outputFormatter) to writer
 	enc := json.NewEncoder(w)
 	enc.Encode(rows)
-
 }
 
 func main() {
