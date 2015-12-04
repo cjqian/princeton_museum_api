@@ -2,8 +2,34 @@ package sqlParser
 
 import (
 	/*"fmt"*/
+	"strconv"
 	"strings"
 )
+
+func GetTableIDMap() map[string]string {
+	tableIDMap := make(map[string]string, 0)
+
+	tableIDMap["apiconobjxrefs"] = "ObjectID"
+	tableIDMap["apiconstituents"] = "ConstituentID"
+	tableIDMap["apidimelements"] = "DimItemElemXrefID"
+	tableIDMap["apidimobjxrefs"] = "ObjectID"
+	tableIDMap["apimedia"] = "MediaMasterID"
+	tableIDMap["apimediaxrefs"] = "ID"
+	tableIDMap["apiobjects"] = "ObjectID"
+	tableIDMap["apititleobjxrefs"] = "TitleID"
+
+	return tableIDMap
+}
+
+func GetTableXRefMap() map[string]string {
+	tableXrefMap := make(map[string]string, 0)
+
+	tableXrefMap["apiconstituents"] = "apiconobjxrefs"
+	tableXrefMap["apidimelements"] = "apidimobjxrefs"
+	tableXrefMap["apimedia"] = "apimediaxrefs"
+
+	return tableXrefMap
+}
 
 //returns a map of each column name in table to its appropriate GoLang tpye (name string)
 func GetColTypeMap() map[string]string {
@@ -24,39 +50,27 @@ func GetColTypeMap() map[string]string {
 	return colMap
 }
 
-func GetTableMap() map[string][]string {
-	var tableNames []string
-	var tableMap = make(map[string][]string)
+//given a []byte b and type t, return b in t form
+func StringToType(b []byte, t string) (interface{}, error) {
+	//all unregistered types (datetime for now, etc) are type string
+	s := string(b)
 
-	tableRawBytes := make([]byte, 1)
-	tableInterface := make([]interface{}, 1)
-
-	tableInterface[0] = &tableRawBytes
-
-	rows, err := globalDB.Query("SELECT TABLE_NAME FROM information_schema.tables where table_type='base table' or table_type='view'")
-	check(err)
-
-	for rows.Next() {
-		err := rows.Scan(tableInterface...)
-		check(err)
-
-		tableNames = append(tableNames, string(tableRawBytes))
-	}
-
-	for _, table := range tableNames {
-		rows, err = globalDB.Query("SELECT column_name from information_schema.columns where table_name='" + table + "' ORDER BY column_name asc")
-		check(err)
-
-		colMap := make([]string, 0)
-
-		for rows.Next() {
-			err = rows.Scan(tableInterface...)
-			check(err)
-
-			colMap = append(colMap, string(tableRawBytes))
+	if t == "bigint" || t == "int" || t == "integer" || t == "tinyint" {
+		i, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, err
 		}
-
-		tableMap[table] = colMap
+		return i, nil
+	} else if t == "double" {
+		float, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			return nil, err
+		}
+		return float, nil
+	} else if t == "varchar" {
+		return s, nil
+	} else {
+		return string(b), nil
 	}
-	return tableMap
+
 }

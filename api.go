@@ -1,3 +1,7 @@
+/* this is the main server script
+ * for the api
+ * crystal qian 2015 */
+
 package main
 
 import (
@@ -23,20 +27,37 @@ var (
 	db = sqlParser.InitializeDatabase(username, password, database)
 )
 
-func requestHandler(w http.ResponseWriter, r *http.Request) {
+func infoHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	resp := sqlParser.GetTableNames()
-	enc := json.NewEncoder(w)
-	enc.Encode(resp)
+
+	path := r.URL.Path[1:]
+	request := urlParser.ParseURL(path)
+
+	tableName := request.TableName
+	parameters := request.Parameters
+
+	if tableName == "" {
+		resp := sqlParser.GetTableNames()
+		enc := json.NewEncoder(w)
+		enc.Encode(resp)
+	} else if len(parameters) <= 0 {
+		resp := sqlParser.GetColumnNames(tableName)
+		enc := json.NewEncoder(w)
+		enc.Encode(resp)
+	} else {
+		resp := make(map[string]interface{}, 0)
+		for _, columnName := range parameters {
+			resp[columnName] = sqlParser.GetColumnValues(tableName, columnName)
+		}
+
+		enc := json.NewEncoder(w)
+		enc.Encode(resp)
+	}
 }
 
 //handles all calls to the API
 func apiHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Request:")
-
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "Origin, Authorization, X-Requested-With, Content-Type")
 
 	//url of type "/table?parameterA=valueA&parameterB=valueB/id
 	path := r.URL.Path[1:]
@@ -51,9 +72,8 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	//note: tableName could also refer to a view
 	tableName := request.TableName
 	tableParameters := request.Parameters
-	//for error purposes
-
 	var rows []map[string]interface{}
+
 	//GETS the request
 	if tableName != "" {
 		rows, _ = sqlParser.Get(tableName, tableParameters)
@@ -64,7 +84,6 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 		rows = nil
 	}
 
-	//encoder writes the resultant "Response" struct (see outputFormatter) to writer
 	enc := json.NewEncoder(w)
 	enc.Encode(rows)
 }
@@ -74,7 +93,7 @@ func main() {
 	flag.Parse()
 
 	http.HandleFunc("/api/", apiHandler)
-	http.HandleFunc("/request/", requestHandler)
+	http.HandleFunc("/info/", infoHandler)
 
 	if *addr {
 		//runs on home
