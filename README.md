@@ -13,7 +13,7 @@ All responses are in [JSON](http://json.org) format.
 There are two types of responses: 
 * [Info](https://github.com)
 * API
-**[Object](https://github.com/cjqian/princeton_museum_api/blob/master/object.md)
+  * [Object](https://github.com/cjqian/princeton_museum_api/blob/master/object.md)
 
 
 ## Contact
