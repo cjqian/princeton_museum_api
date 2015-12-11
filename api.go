@@ -5,6 +5,7 @@
 package main
 
 import (
+	"./outputFormatter"
 	"./sqlParser"
 	"./urlParser"
 	"encoding/json"
@@ -35,24 +36,35 @@ func infoHandler(w http.ResponseWriter, r *http.Request) {
 
 	tableName := request.TableName
 	parameters := request.Parameters
+	specialParameters := request.SpecialParameters
 
+	var resp interface{}
 	if tableName == "" {
-		resp := sqlParser.GetTableNames()
-		enc := json.NewEncoder(w)
-		enc.Encode(resp)
-	} else if len(parameters) <= 0 {
-		resp := sqlParser.GetColumnNames(tableName)
-		enc := json.NewEncoder(w)
-		enc.Encode(resp)
-	} else {
-		resp := make(map[string]interface{}, 0)
-		for _, columnName := range parameters {
-			resp[columnName] = sqlParser.GetColumnValues(tableName, columnName)
-		}
+		rows := sqlParser.GetTableNames()
+		numResults := len(rows)
+		resp = outputFormatter.MakeApiWrapper(request, rows, numResults, specialParameters)
 
-		enc := json.NewEncoder(w)
-		enc.Encode(resp)
+	} else if len(parameters) <= 0 {
+		rows := sqlParser.GetColumnNames(tableName)
+		numResults := len(rows)
+		resp = outputFormatter.MakeApiWrapper(request, rows, numResults, specialParameters)
+
+	} else {
+		rows := make(map[string][]string, 0)
+		rowWrappers := make(map[string]interface{}, 0)
+		for _, columnName := range parameters {
+			rows[columnName] = sqlParser.GetColumnValues(tableName, columnName)
+
+			curNumResults := len(rows[columnName])
+			rowWrappers[columnName] = outputFormatter.MakeInfoWrapper(curNumResults, rows[columnName])
+		}
+		numResults := len(rows)
+		resp = outputFormatter.MakeApiWrapper(request, rowWrappers, numResults, specialParameters)
+
 	}
+
+	enc := json.NewEncoder(w)
+	enc.Encode(resp)
 }
 
 //handles all calls to the API
@@ -72,11 +84,13 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	//note: tableName could also refer to a view
 	tableName := request.TableName
 	tableParameters := request.Parameters
+	specialParameters := request.SpecialParameters
+
 	var rows []map[string]interface{}
 
 	//GETS the request
 	if tableName != "" {
-		rows, _ = sqlParser.Get(tableName, tableParameters)
+		rows, _ = sqlParser.Get(tableName, tableParameters, specialParameters)
 		/*if err != nil {*/
 		/*errString = err.Error()*/
 		/*}*/
@@ -84,8 +98,10 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 		rows = nil
 	}
 
+	numResults := sqlParser.GetNumResults(tableName, tableParameters)
+	resp := outputFormatter.MakeApiWrapper(request, rows, numResults, specialParameters)
 	enc := json.NewEncoder(w)
-	enc.Encode(rows)
+	enc.Encode(resp)
 }
 
 func main() {

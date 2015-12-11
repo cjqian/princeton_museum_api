@@ -152,6 +152,7 @@ func GetOneToMany(objectID int, oTable string, tTable string, channel chan inter
 
 	queryStr := "select " + tTable + ".* from " + cTable + " INNER JOIN " + oTable + " ON " + cIDname + " = " + oIDname + " INNER JOIN " + tTable + " ON " + cIDtrans + " = " + tIDname + " where " + oIDname + "=" + strconv.Itoa(objectID)
 
+	fmt.Println(queryStr)
 	rows, err := globalDB.Queryx(queryStr)
 	if err != nil {
 		panic(err)
@@ -205,7 +206,42 @@ func AppendSpecial(tableName string, objectIDval int, results map[string]interfa
 /*********************************************************************************
  * GET FUNCTIONALITY
  ********************************************************************************/
-func Get(tableName string, tableParameters []string) ([]map[string]interface{}, error) {
+func GetNumResults(tableName string, tableParameters []string) int {
+	var numResults int
+
+	queryStr := "select count(*) from " + tableName
+
+	//where
+	if len(tableParameters) > 0 {
+		queryStr += " where "
+
+		for _, v := range tableParameters {
+			queryStr += v + " and "
+		}
+
+		queryStr = queryStr[:len(queryStr)-4]
+	}
+
+	rows, err := globalDB.Queryx(queryStr)
+	if err != nil {
+		return -1
+	}
+
+	for rows.Next() {
+		err := rows.Scan(&numResults)
+		if err != nil {
+			return -1
+		}
+	}
+
+	return numResults
+}
+
+func Get(tableName string, tableParameters []string, specialParameters map[string]int) ([]map[string]interface{}, error) {
+	//pagination
+	size := specialParameters["size"]
+	page := specialParameters["page"]
+
 	regStr := ""
 	joinStr := ""
 
@@ -222,6 +258,7 @@ func Get(tableName string, tableParameters []string) ([]map[string]interface{}, 
 
 	queryStr := "select " + regStr + joinStr + " from " + tableName + " "
 
+	/* MAIN QUERY */
 	//where
 	if len(tableParameters) > 0 {
 		queryStr += " where "
@@ -233,7 +270,10 @@ func Get(tableName string, tableParameters []string) ([]map[string]interface{}, 
 		queryStr = queryStr[:len(queryStr)-4]
 	}
 
-	fmt.Println(queryStr)
+	//limitation
+	startNum := (page - 1.0) * size
+	queryStr += " LIMIT " + strconv.Itoa(startNum) + ", " + strconv.Itoa(size)
+
 	//do the query
 	rows, err := globalDB.Queryx(queryStr)
 	if err != nil {
@@ -242,20 +282,16 @@ func Get(tableName string, tableParameters []string) ([]map[string]interface{}, 
 
 	//map into an array of type map[colName]value
 	rowArray := make([]map[string]interface{}, 0)
-	fmt.Println("Starting rows")
-	i := 0
+
+	objectIDstring := "ObjectID"
 	//for each row
 	for rows.Next() {
-		fmt.Println(i)
-		i += 1
 		//map the column name to its value
 		results := make(map[string]interface{}, 0)
 		err = rows.MapScan(results)
 		if err != nil {
 			return nil, err
 		}
-
-		var objectIDstring string = "ObjectID"
 
 		for k, v := range results {
 			if b, ok := v.([]byte); ok {
@@ -268,13 +304,10 @@ func Get(tableName string, tableParameters []string) ([]map[string]interface{}, 
 		}
 
 		objectIDval := results[objectIDstring].(int)
-
-		if tableName == "apiobjects" {
-			AppendSpecial(tableName, objectIDval, results)
-		}
+		AppendSpecial(tableName, objectIDval, results)
 
 		rowArray = append(rowArray, results)
 	}
-	fmt.Println("End rows")
+
 	return rowArray, nil
 }
