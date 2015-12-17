@@ -11,7 +11,7 @@ Note: this API isn't running on a server yet, so examples will use `localhost:80
 All responses are in [JSON](http://json.org) format. 
 
 There are two types of responses: 
-* [Info](https://github.com)
+* [Info](https://github.com/cjqian/printon_museum_api/blob/master/info.md)
 * API
   * [Object](https://github.com/cjqian/princeton_museum_api/blob/master/object.md)
 
