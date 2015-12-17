@@ -4,8 +4,8 @@ import (
 	_ "./mysql"
 	"./sqlx"
 	"strconv"
-	//	"encoding/json"
-	"fmt"
+	//"encoding/json"
+	//"fmt"
 )
 
 var (
@@ -86,7 +86,7 @@ func GetColumnNames(tableName string) []string {
 }
 
 func GetColumnValues(tableName string, columnName string) []string {
-	fmt.Println(tableName + ", " + columnName)
+	//fmt.Println(tableName + ", " + columnName)
 	tableRawBytes := make([]byte, 1)
 	tableInterface := make([]interface{}, 1)
 
@@ -152,7 +152,7 @@ func GetOneToMany(objectID int, oTable string, tTable string, channel chan inter
 
 	queryStr := "select " + tTable + ".* from " + cTable + " INNER JOIN " + oTable + " ON " + cIDname + " = " + oIDname + " INNER JOIN " + tTable + " ON " + cIDtrans + " = " + tIDname + " where " + oIDname + "=" + strconv.Itoa(objectID)
 
-	fmt.Println(queryStr)
+	//fmt.Println(queryStr)
 	rows, err := globalDB.Queryx(queryStr)
 	if err != nil {
 		panic(err)

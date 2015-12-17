@@ -9,7 +9,7 @@ package urlParser
 *****************************************************************/
 
 import (
-	"fmt"
+	//	"fmt"
 	"strconv"
 	"strings"
 )
@@ -34,6 +34,11 @@ func ParseURL(url string) Request {
 	//replace less than/greater than symbols in url encode
 	url = strings.Replace(url, "%3c", "<", -1)
 
+	//remove the last character if we end in "/"
+	if url[len(url)-1:len(url)] == "/" {
+		url = url[:len(url)-1]
+	}
+
 	urlSections := strings.Split(url, "/")
 
 	r.Type = urlSections[0]
@@ -51,10 +56,10 @@ func ParseURL(url string) Request {
 			if len(qMarkSplit) > 1 {
 				paramSplit := strings.Split(qMarkSplit[1], "&")
 				for _, param := range paramSplit {
-					fmt.Println("Param: " + param)
+					//fmt.Println("Param: " + param)
 					//if space, we make exception
 					if strings.Contains(param, "_") {
-						fmt.Println("Contains " + param)
+						//fmt.Println("Contains " + param)
 						param = strings.Replace(param, "_", " ", -1)
 						index := strings.Index(param, "=")
 						param = param[0:index+1] + "'" + param[index+1:] + "'"
