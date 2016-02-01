@@ -5,11 +5,12 @@
 package main
 
 import (
+	"./outputFormatter"
 	"./sqlParser"
 	"./urlParser"
 	"encoding/json"
 	"flag"
-	"fmt"
+	//"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -33,26 +34,39 @@ func infoHandler(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path[1:]
 	request := urlParser.ParseURL(path)
 
+	//fmt.Println(request)
+
 	tableName := request.TableName
 	parameters := request.Parameters
+	specialParameters := request.SpecialParameters
 
+	var resp interface{}
 	if tableName == "" {
-		resp := sqlParser.GetTableNames()
-		enc := json.NewEncoder(w)
-		enc.Encode(resp)
-	} else if len(parameters) <= 0 {
-		resp := sqlParser.GetColumnNames(tableName)
-		enc := json.NewEncoder(w)
-		enc.Encode(resp)
-	} else {
-		resp := make(map[string]interface{}, 0)
-		for _, columnName := range parameters {
-			resp[columnName] = sqlParser.GetColumnValues(tableName, columnName)
-		}
+		records := sqlParser.GetTableNames()
+		numResults := len(records)
+		resp = outputFormatter.MakeApiWrapper(request, records, numResults, specialParameters)
 
-		enc := json.NewEncoder(w)
-		enc.Encode(resp)
+	} else if len(parameters) <= 0 {
+		records := sqlParser.GetColumnNames(tableName)
+		numResults := len(records)
+		resp = outputFormatter.MakeApiWrapper(request, records, numResults, specialParameters)
+
+	} else {
+		records := make(map[string][]string, 0)
+		rowWrappers := make(map[string]interface{}, 0)
+		for _, columnName := range parameters {
+			records[columnName] = sqlParser.GetColumnValues(tableName, columnName)
+
+			curNumResults := len(records[columnName])
+			rowWrappers[columnName] = outputFormatter.MakeInfoWrapper(curNumResults, records[columnName])
+		}
+		numResults := len(records)
+		resp = outputFormatter.MakeApiWrapper(request, rowWrappers, numResults, specialParameters)
+
 	}
+
+	enc := json.NewEncoder(w)
+	enc.Encode(resp)
 }
 
 //handles all calls to the API
@@ -61,35 +75,39 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 
 	//url of type "/table?parameterA=valueA&parameterB=valueB/id
 	path := r.URL.Path[1:]
-	fmt.Println(path)
+	//fmt.Println(path)
 	if r.URL.RawQuery != "" {
 		path += "?" + r.URL.RawQuery
 	}
 
 	request := urlParser.ParseURL(path)
-	fmt.Println(request)
+	//fmt.Println(request)
 
 	//note: tableName could also refer to a view
 	tableName := request.TableName
 	tableParameters := request.Parameters
-	var rows []map[string]interface{}
+	specialParameters := request.SpecialParameters
+
+	var records []map[string]interface{}
 
 	//GETS the request
 	if tableName != "" {
-		rows, _ = sqlParser.Get(tableName, tableParameters)
+		records, _ = sqlParser.Get(tableName, tableParameters, specialParameters)
 		/*if err != nil {*/
 		/*errString = err.Error()*/
 		/*}*/
 	} else {
-		rows = nil
+		records = nil
 	}
 
+	numResults := sqlParser.GetNumRows(tableName, sqlParser.GetWhereString(tableParameters), sqlParser.GetLimString(specialParameters))
+	resp := outputFormatter.MakeApiWrapper(request, records, numResults, specialParameters)
 	enc := json.NewEncoder(w)
-	enc.Encode(rows)
+	enc.Encode(resp)
 }
 
 func main() {
-	fmt.Println("Starting server.")
+	//fmt.Println("Starting server.")
 	flag.Parse()
 
 	http.HandleFunc("/api/", apiHandler)

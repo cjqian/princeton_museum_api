@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+/*
 func GetTableIDMap() map[string]string {
 	tableIDMap := make(map[string]string, 0)
 
@@ -29,7 +30,7 @@ func GetTableXRefMap() map[string]string {
 	tableXrefMap["apimedia"] = "apimediaxrefs"
 
 	return tableXrefMap
-}
+}*/
 
 //returns a map of each column name in table to its appropriate GoLang tpye (name string)
 func GetColTypeMap() map[string]string {
