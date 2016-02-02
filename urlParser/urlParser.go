@@ -84,7 +84,7 @@ func ParseURL(url string) Request {
 		//by nature of SQLParser, this is considered as a parameter
 		if len(urlSections) > 2 && urlSections[2] != "" {
 			//this only works for objectID!
-			r.Parameters = append(r.Parameters, r.TableName+"."+tableNameToId[r.TableName]+"="+urlSections[2])
+			r.Parameters = append(r.Parameters, tableNameToId[r.TableName]+"="+urlSections[2])
 		}
 
 		//set special paraemters

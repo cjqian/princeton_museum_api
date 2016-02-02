@@ -318,6 +318,7 @@ func GetLimString(specialParameters map[string]int) string {
 }
 
 func Get(tableName string, tableParameters []string, specialParameters map[string]int) ([]map[string]interface{}, error) {
+	//pagination
 
 	regStr := ""
 	joinStr := ""
@@ -356,7 +357,6 @@ func Get(tableName string, tableParameters []string, specialParameters map[strin
 	} else if tableName == "apiconstituents" {
 		//QueryConstituents(whereStr, size)
 	}
-
 	//for each row
 	i := 0
 	for rows.Next() {
