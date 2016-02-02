@@ -9,7 +9,7 @@ package urlParser
 *****************************************************************/
 
 import (
-	//	"fmt"
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -70,11 +70,25 @@ func ParseURL(url string) Request {
 						param = param[0:index+1] + "'" + param[index+1:] + "'"
 					}
 
-					paramKey := strings.Split(param, "=")[0]
+					fmt.Println(param)
+					params := strings.Split(param, "=")
+					if params[0] == param {
+						params = strings.Split(param, "<")
+					}
+					if params[0] == param {
+						params = strings.Split(param, ">")
+					}
+					paramKey := params[0]
+					paramVal := params[1]
+
 					if paramKey == "page" || paramKey == "size" {
 						r.SpecialParameters[paramKey], _ = strconv.Atoi(strings.Split(param, "=")[1])
 					} else {
-						r.Parameters = append(r.Parameters, param)
+						if paramKey == "objectid" {
+							paramKey = "apiobjects.objectid"
+						}
+
+						r.Parameters = append(r.Parameters, paramKey+"="+paramVal)
 					}
 				}
 			}
@@ -84,7 +98,7 @@ func ParseURL(url string) Request {
 		//by nature of SQLParser, this is considered as a parameter
 		if len(urlSections) > 2 && urlSections[2] != "" {
 			//this only works for objectID!
-			r.Parameters = append(r.Parameters, tableNameToId[r.TableName]+"="+urlSections[2])
+			r.Parameters = append(r.Parameters, r.TableName+"."+tableNameToId[r.TableName]+"="+urlSections[2])
 		}
 
 		//set special paraemters

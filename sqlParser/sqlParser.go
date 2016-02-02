@@ -145,7 +145,7 @@ func QueryRows(queryStr string) []map[string]interface{} {
 
 //returns data from the apiconobjxrefs data
 func GetBibliography(whereStr string, limStr string, rowCount int) []map[string]interface{} {
-	queryStr := "select ReferenceID, ObjCitation, apibibobjxrefs.SysTimeStamp from apibibobjxrefs INNER JOIN apiobjects " + whereStr + limStr
+	queryStr := "select ReferenceID, ObjCitation, apibibobjxrefs.SysTimeStamp, apiobjects.ObjectID from apibibobjxrefs " + whereStr
 
 	return QueryRows(queryStr)
 }
@@ -243,6 +243,16 @@ func GetUri(constituentID int, channel chan interface{}) {
 	channel <- rowArray
 }
 
+//func AddSubObjects(curResult map[string]interface{}, subResults []map[string]interface{}) int{
+//subIdx := 0
+//subArray := make([]interface{}, 0)
+
+//for subIdx < len(subResults) && curResult["ObjectID"] == subResults[subIdx]["ObjectID"] {
+//delete(subResults[subIdx], "ObjectID")
+
+//}
+
+//}
 /*********************************************************************************
  * GET TABLES
  ********************************************************************************/
@@ -254,23 +264,36 @@ func GetUri(constituentID int, channel chan interface{}) {
 
 func QueryObjects(whereStr string, limStr string, rowCount int, results []map[string]interface{}) {
 	bibliographyResults := GetBibliography(whereStr, limStr, rowCount)
-	constituentResults := GetConstituentsTrunc(whereStr, limStr, rowCount)
-	dimensionResults := GetDimElements(whereStr, limStr, rowCount)
-	exhibitionResults := GetExhibitions(whereStr, limStr, rowCount)
-	geographyResults := GetGeography(whereStr, limStr, rowCount)
-	mediaResults := GetMedia(whereStr, limStr, rowCount)
-	termResults := GetTerms(whereStr, limStr, rowCount)
-	titleResults := GetTitles(whereStr, limStr, rowCount)
+	//constituentResults := GetConstituentsTrunc(whereStr, limStr, rowCount)
+	//dimensionResults := GetDimElements(whereStr, limStr, rowCount)
+	//exhibitionResults := GetExhibitions(whereStr, limStr, rowCount)
+	//geographyResults := GetGeography(whereStr, limStr, rowCount)
+	//mediaResults := GetMedia(whereStr, limStr, rowCount)
+	//termResults := GetTerms(whereStr, limStr, rowCount)
+	//titleResults := GetTitles(whereStr, limStr, rowCount)
 
-	for i := 0; i < rowCount; i++ {
-		results[i]["Bibliography"] = bibliographyResults[i]
-		results[i]["Constituents"] = constituentResults[i]
-		results[i]["Dimensions"] = dimensionResults[i]
-		results[i]["Exhibitions"] = exhibitionResults[i]
-		results[i]["Geography"] = geographyResults[i]
-		results[i]["Media"] = mediaResults[i]
-		results[i]["Terms"] = termResults[i]
-		results[i]["Titles"] = titleResults[i]
+	bibIdx := 0
+	for i := 0; i < len(results); i++ {
+
+		bibliographyInterfaceArray := make([]interface{}, 0)
+		fmt.Println(results[i]["ObjectID"])
+		for bibIdx < len(bibliographyResults) && results[i]["ObjectID"] == bibliographyResults[bibIdx]["ObjectID"] {
+			fmt.Println("Iteration")
+			//remove the objectID field
+			//delete(bibliographyResults[bibIdx], "ObjectID")
+			bibliographyInterfaceArray = append(bibliographyInterfaceArray, bibliographyResults[bibIdx])
+			bibIdx++
+		}
+		results[i]["Bibliography"] = bibliographyInterfaceArray
+		fmt.Println("results")
+		fmt.Println(results[i]["Bibliography"])
+		//results[i]["Constituents"] = constituentResults[i]
+		//results[i]["Dimensions"] = dimensionResults[i]
+		//results[i]["Exhibitions"] = exhibitionResults[i]
+		//results[i]["Geography"] = geographyResults[i]
+		//results[i]["Media"] = mediaResults[i]
+		//results[i]["Terms"] = termResults[i]
+		//results[i]["Titles"] = titleResults[i]
 	}
 }
 
@@ -279,7 +302,9 @@ func QueryObjects(whereStr string, limStr string, rowCount int, results []map[st
  ********************************************************************************/
 func GetNumRows(tableName string, whereStr string, limStr string) int {
 	var rowCount int
-	err := globalDB.Get(&rowCount, "SELECT count(*) FROM "+tableName+" "+whereStr+limStr)
+	queryStr := "SELECT count(*) FROM " + tableName + " " + whereStr + limStr
+	fmt.Println(queryStr)
+	err := globalDB.Get(&rowCount, queryStr)
 	if err != nil {
 		panic(err)
 	}
@@ -338,46 +363,19 @@ func Get(tableName string, tableParameters []string, specialParameters map[strin
 	limStr := GetLimString(specialParameters)
 	queryStr := "select " + regStr + joinStr + " from " + tableName + " " + whereStr + limStr
 
-	//do the query
-	rows, err := globalDB.Queryx(queryStr)
-	if err != nil {
-		return nil, err
-	}
-
 	//get number of rows
 	rowCount := GetNumRows(tableName, whereStr, limStr)
 	fmt.Println(rowCount)
 
 	//map into an array of type map[colName]value
-	rowArray := make([]map[string]interface{}, rowCount)
+	rowArray := QueryRows(queryStr)
+	fmt.Println(rowArray)
 
 	//query the special tables
 	if tableName == "apiobjects" {
 		QueryObjects(whereStr, limStr, rowCount, rowArray)
 	} else if tableName == "apiconstituents" {
 		//QueryConstituents(whereStr, size)
-	}
-	//for each row
-	i := 0
-	for rows.Next() {
-		//map the column name to its value
-		results := make(map[string]interface{}, 0)
-		err = rows.MapScan(results)
-		if err != nil {
-			return nil, err
-		}
-
-		for k, v := range results {
-			if b, ok := v.([]byte); ok {
-				rowArray[i][k], err = StringToType(b, colTypeMap[k])
-				if err != nil {
-					return nil, err
-				}
-			}
-
-		}
-
-		i++
 	}
 
 	return rowArray, nil
