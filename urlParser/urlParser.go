@@ -38,6 +38,7 @@ func ParseURL(url string) Request {
 
 	//replace less than/greater than symbols in url encode
 	url = strings.Replace(url, "%3c", "<", -1)
+	url = strings.Replace(url, "%3e", ">", -1)
 
 	//remove the last character if we end in "/"
 	if url[len(url)-1:len(url)] == "/" {
@@ -72,12 +73,16 @@ func ParseURL(url string) Request {
 
 					fmt.Println(param)
 					params := strings.Split(param, "=")
+					equivSign := "="
 					if params[0] == param {
 						params = strings.Split(param, "<")
+						equivSign = "<"
 					}
 					if params[0] == param {
 						params = strings.Split(param, ">")
+						equivSign = ">"
 					}
+					fmt.Println(params)
 					paramKey := params[0]
 					paramVal := params[1]
 
@@ -88,7 +93,7 @@ func ParseURL(url string) Request {
 							paramKey = "apiobjects.objectid"
 						}
 
-						r.Parameters = append(r.Parameters, paramKey+"="+paramVal)
+						r.Parameters = append(r.Parameters, paramKey+equivSign+paramVal)
 					}
 				}
 			}

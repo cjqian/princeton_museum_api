@@ -144,18 +144,16 @@ func QueryRows(queryStr string) []map[string]interface{} {
 }
 
 //returns data from the apiconobjxrefs data
-func GetBibliography(whereStr string, limStr string, rowCount int) []map[string]interface{} {
-	queryStr := "select ReferenceID, ObjCitation, apibibobjxrefs.SysTimeStamp, apiobjects.ObjectID from apibibobjxrefs " + whereStr
+func GetBibliography() []map[string]interface{} {
+	queryStr := "select ReferenceID, ObjCitation, apibibobjxrefs.SysTimeStamp, apiobjects.ObjectID from apibibobjxrefs INNER JOIN queryView as apiobjects ON apibibobjxrefs.ObjectID = apiobjects.ObjectID"
 
 	return QueryRows(queryStr)
 }
 
-func GetConstituentsTrunc(whereStr string, limStr string, rowCount int) []map[string]interface{} {
-	params := "apiconstituents.Active, apiconstituents.AlphaSort, apiconstituents.Approved, apiconstituents.BeginDate, apiconstituents.BeginDateISO, apiconstituents.ConstituentID, apiconobjxrefs.DisplayOrder, apiconobjxrefs.Displayed, apiconobjxrefs.Prefix, apiconobjxrefs.Remarks, apiconobjxrefs.Role, apiconobjxrefs.Suffix, apiconstituents.SysTimeStamp"
+func GetConstituentsTrunc() []map[string]interface{} {
+	params := "apiconstituents.Active, apiconstituents.AlphaSort, apiconstituents.Approved, apiconstituents.BeginDate, apiconstituents.BeginDateISO, apiconstituents.ConstituentID, apiconobjxrefs.DisplayOrder, apiconobjxrefs.Displayed, apiconobjxrefs.Prefix, apiconobjxrefs.Remarks, apiconobjxrefs.Role, apiconobjxrefs.Suffix, apiconstituents.SysTimeStamp, apiobjects.ObjectID"
 
-	queryStr := "select " + params + " from apiconobjxrefs " + "INNER JOIN apiobjects ON apiconobjxrefs.ObjectID = apiobjects.ObjectID " + "INNER JOIN apiconstituents ON apiconobjxrefs.ConstituentID = apiconstituents.ConstituentID " + whereStr + " ORDER BY apiconobjxrefs.DisplayOrder" + limStr
-
-	fmt.Println(queryStr)
+	queryStr := "select " + params + " from apiconobjxrefs " + "INNER JOIN queryView as apiobjects ON apiconobjxrefs.ObjectID = apiobjects.ObjectID " + "INNER JOIN apiconstituents ON apiconobjxrefs.ConstituentID = apiconstituents.ConstituentID ORDER BY apiconobjxrefs.DisplayOrder"
 
 	return QueryRows(queryStr)
 }
@@ -243,16 +241,23 @@ func GetUri(constituentID int, channel chan interface{}) {
 	channel <- rowArray
 }
 
-//func AddSubObjects(curResult map[string]interface{}, subResults []map[string]interface{}) int{
-//subIdx := 0
-//subArray := make([]interface{}, 0)
+func AddSubObjects(curResult map[string]interface{}, tableName string, subResults []map[string]interface{}, subIdx int) int {
+	subArray := make([]interface{}, 0)
 
-//for subIdx < len(subResults) && curResult["ObjectID"] == subResults[subIdx]["ObjectID"] {
-//delete(subResults[subIdx], "ObjectID")
+	for subIdx < len(subResults) && curResult["ObjectID"] == subResults[subIdx]["ObjectID"] {
+		fmt.Println("Cur object id: " + strconv.Itoa(curResult["ObjectID"].(int)))
+		fmt.Println("Bib object id: " + strconv.Itoa(subResults[subIdx]["ObjectID"].(int)))
 
-//}
+		delete(subResults[subIdx], "ObjectID")
+		subArray = append(subArray, subResults[subIdx])
+		subIdx++
+	}
 
-//}
+	curResult[tableName] = subArray
+
+	return subIdx
+}
+
 /*********************************************************************************
  * GET TABLES
  ********************************************************************************/
@@ -263,8 +268,8 @@ func GetUri(constituentID int, channel chan interface{}) {
 //}
 
 func QueryObjects(whereStr string, limStr string, rowCount int, results []map[string]interface{}) {
-	bibliographyResults := GetBibliography(whereStr, limStr, rowCount)
-	//constituentResults := GetConstituentsTrunc(whereStr, limStr, rowCount)
+	bibliographyResults := GetBibliography()
+	constituentResults := GetConstituentsTrunc()
 	//dimensionResults := GetDimElements(whereStr, limStr, rowCount)
 	//exhibitionResults := GetExhibitions(whereStr, limStr, rowCount)
 	//geographyResults := GetGeography(whereStr, limStr, rowCount)
@@ -273,20 +278,12 @@ func QueryObjects(whereStr string, limStr string, rowCount int, results []map[st
 	//titleResults := GetTitles(whereStr, limStr, rowCount)
 
 	bibIdx := 0
-	for i := 0; i < len(results); i++ {
+	constituentIdx := 0
 
-		bibliographyInterfaceArray := make([]interface{}, 0)
-		fmt.Println(results[i]["ObjectID"])
-		for bibIdx < len(bibliographyResults) && results[i]["ObjectID"] == bibliographyResults[bibIdx]["ObjectID"] {
-			fmt.Println("Iteration")
-			//remove the objectID field
-			//delete(bibliographyResults[bibIdx], "ObjectID")
-			bibliographyInterfaceArray = append(bibliographyInterfaceArray, bibliographyResults[bibIdx])
-			bibIdx++
-		}
-		results[i]["Bibliography"] = bibliographyInterfaceArray
-		fmt.Println("results")
-		fmt.Println(results[i]["Bibliography"])
+	for i := 0; i < len(results); i++ {
+		fmt.Println(i)
+		bibIdx = AddSubObjects(results[i], "Bibliography", bibliographyResults, bibIdx)
+		constituentIdx = AddSubObjects(results[i], "Constituents", constituentResults, constituentIdx)
 		//results[i]["Constituents"] = constituentResults[i]
 		//results[i]["Dimensions"] = dimensionResults[i]
 		//results[i]["Exhibitions"] = exhibitionResults[i]
@@ -303,13 +300,11 @@ func QueryObjects(whereStr string, limStr string, rowCount int, results []map[st
 func GetNumRows(tableName string, whereStr string, limStr string) int {
 	var rowCount int
 	queryStr := "SELECT count(*) FROM " + tableName + " " + whereStr + limStr
-	fmt.Println(queryStr)
+
 	err := globalDB.Get(&rowCount, queryStr)
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Println(rowCount)
 
 	return rowCount
 }
@@ -342,34 +337,57 @@ func GetLimString(specialParameters map[string]int) string {
 	return limStr
 }
 
+//makes a view with name "queryView", no return value
+func MakeView(tableName string, whereStr string, limitStr string) {
+	selectStatement := "select * from " + tableName + " " + whereStr + " " + limitStr
+	query := "create view queryView as " + selectStatement
+	fmt.Println(query)
+
+	_, err := globalDB.Query("DROP VIEW IF EXISTS queryView")
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = globalDB.Query(query)
+	if err != nil {
+		panic(err)
+	}
+
+	//now, there should be a view with the name "queryView"
+}
+
 func Get(tableName string, tableParameters []string, specialParameters map[string]int) ([]map[string]interface{}, error) {
 	//pagination
 
 	regStr := ""
-	joinStr := ""
+	//joinStr := ""
 
 	cols := GetColumnNames(tableName)
 	for _, col := range cols {
-		regStr += tableName + "." + col + ","
+		regStr += col + ","
 	}
 
-	regStr = regStr[:len(regStr)-1]
-
-	if joinStr != "" {
-		joinStr = ", " + joinStr[:len(joinStr)-1]
+	if len(cols) > 0 {
+		regStr = regStr[:len(regStr)-1]
 	}
+
+	//if joinStr != "" {
+	//joinStr = ", " + joinStr[:len(joinStr)-1]
+	//}
 
 	whereStr := GetWhereString(tableParameters)
 	limStr := GetLimString(specialParameters)
-	queryStr := "select " + regStr + joinStr + " from " + tableName + " " + whereStr + limStr
+	//make the view
+	MakeView(tableName, whereStr, limStr)
+
+	//queryStr := "select " + regStr + joinStr + " from queryView"
+	queryStr := "select " + regStr + " from queryView"
 
 	//get number of rows
 	rowCount := GetNumRows(tableName, whereStr, limStr)
-	fmt.Println(rowCount)
 
 	//map into an array of type map[colName]value
 	rowArray := QueryRows(queryStr)
-	fmt.Println(rowArray)
 
 	//query the special tables
 	if tableName == "apiobjects" {
@@ -377,6 +395,8 @@ func Get(tableName string, tableParameters []string, specialParameters map[strin
 	} else if tableName == "apiconstituents" {
 		//QueryConstituents(whereStr, size)
 	}
+
+	//then, remove the view
 
 	return rowArray, nil
 }
