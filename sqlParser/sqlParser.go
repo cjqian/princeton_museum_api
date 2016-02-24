@@ -3,7 +3,7 @@ package sqlParser
 import (
 	_ "./mysql"
 	"./sqlx"
-	"fmt"
+	//"fmt"
 	"strconv"
 	//"encoding/json"
 )
@@ -86,7 +86,6 @@ func GetColumnNames(tableName string) []string {
 }
 
 func GetColumnValues(tableName string, columnName string) []string {
-	//fmt.Println(tableName + ", " + columnName)
 	tableRawBytes := make([]byte, 1)
 	tableInterface := make([]interface{}, 1)
 
@@ -111,8 +110,6 @@ func GetColumnValues(tableName string, columnName string) []string {
  * APIOBJECTS HELPER FUNCTIONS
  ********************************************************************************/
 func QueryRows(queryStr string) []map[string]interface{} {
-	fmt.Println(queryStr)
-
 	rows, err := globalDB.Queryx(queryStr)
 	if err != nil {
 		panic(err)
@@ -143,7 +140,7 @@ func QueryRows(queryStr string) []map[string]interface{} {
 	return rowArray
 }
 
-//returns data from the apiconobjxrefs data
+//returns data from the apiobjconxrefs data
 func GetBibliography() []map[string]interface{} {
 	queryStr := "select ReferenceID, ObjCitation, apibibobjxrefs.SysTimeStamp, apiobjects.ObjectID from apibibobjxrefs INNER JOIN queryView as apiobjects ON apibibobjxrefs.ObjectID = apiobjects.ObjectID"
 
@@ -151,63 +148,59 @@ func GetBibliography() []map[string]interface{} {
 }
 
 func GetConstituentsTrunc() []map[string]interface{} {
-	params := "apiconstituents.Active, apiconstituents.AlphaSort, apiconstituents.Approved, apiconstituents.BeginDate, apiconstituents.BeginDateISO, apiconstituents.ConstituentID, apiconobjxrefs.DisplayOrder, apiconobjxrefs.Displayed, apiconobjxrefs.Prefix, apiconobjxrefs.Remarks, apiconobjxrefs.Role, apiconobjxrefs.Suffix, apiconstituents.SysTimeStamp, apiobjects.ObjectID"
+	params := "apiconstituents.Active, apiconstituents.AlphaSort, apiconstituents.Approved, apiconstituents.BeginDate, apiconstituents.BeginDateISO, apiconstituents.ConstituentID, apiobjconxrefs.DisplayOrder, apiobjconxrefs.Displayed, apiobjconxrefs.Prefix, apiobjconxrefs.Remarks, apiobjconxrefs.Role, apiobjconxrefs.Suffix, apiconstituents.SysTimeStamp, apiobjects.ObjectID"
 
-	queryStr := "select " + params + " from apiconobjxrefs " + "INNER JOIN queryView as apiobjects ON apiconobjxrefs.ObjectID = apiobjects.ObjectID " + "INNER JOIN apiconstituents ON apiconobjxrefs.ConstituentID = apiconstituents.ConstituentID ORDER BY apiconobjxrefs.DisplayOrder"
+	queryStr := "select " + params + " from apiobjconxrefs " + "INNER JOIN queryView as apiobjects ON apiobjconxrefs.ObjectID = apiobjects.ObjectID " + "INNER JOIN apiconstituents ON apiobjconxrefs.ConstituentID = apiconstituents.ConstituentID ORDER BY apiobjconxrefs.DisplayOrder"
 
 	return QueryRows(queryStr)
 }
 
 func GetDimElements(whereStr string, limStr string, rowCount int) []map[string]interface{} {
-	queryStr := `select apidimelements.*, apidimobjxrefs.* from apidimobjxrefs 
-		INNER JOIN apiobjects ON apidimobjxrefs.ObjectID = apiobjects.ObjectID 
-		INNER JOIN apidimelements ON apidimobjxrefs.DimItemElemXrefID = apidimelements.DimItemElemXrefID `
+	queryStr := `select apidimelements.*, apiobjdimxrefs.* from apiobjdimxrefs 
+		INNER JOIN apiobjects ON apiobjdimxrefs.ObjectID = apiobjects.ObjectID 
+		INNER JOIN apidimelements ON apiobjdimxrefs.DimItemElemXrefID = apidimelements.DimItemElemXrefID `
 	queryStr += whereStr + limStr
 
 	return QueryRows(queryStr)
 }
 
-//returns data from the apiconobjxrefs data
-func GetExhibitions(whereStr string, limStr string, rowCount int) []map[string]interface{} {
-	queryStr := "select ExhibitionID, RunningCaption, apiexhobjxrefs.SysTimeStamp from apiexhobjxrefs INNER JOIN apiobjects " + whereStr + limStr
-
+//returns data from the apiobjconxrefs data
+func GetExhibitions() []map[string]interface{} {
+	queryStr := "select ExhibitionID, RunningCaption, apiexhobjxrefs.SysTimeStamp, apiobjects.ObjectID from apiexhobjxrefs INNER JOIN queryView as apiobjects on apiobjects.ObjectID = apiexhobjxrefs.ObjectID"
 	return QueryRows(queryStr)
 }
 
-//returns data from the apiconobjxrefs data
-func GetGeography(whereStr string, limStr string, rowCount int) []map[string]interface{} {
+//returns data from the apiobjconxrefs data
+func GetGeography() []map[string]interface{} {
 	queryStr := `select ObjGeographyID, apiobjgeography.ObjectID, GeoCode, PrimaryDisplay, Continent, SubContinent, Country, 
 		Region, State, City, Country, SubRegion, Locale, Locus, River, Excavation, 
-		Latitude, Longitude, GeoNames, apiobjgeography.SysTimeStamp from apiobjgeography INNER JOIN apiobjects `
-	queryStr += whereStr + limStr
+		Latitude, Longitude, GeoNames, apiobjgeography.SysTimeStamp from apiobjgeography INNER JOIN queryView as apiobjects where apiobjects.ObjectID = apiobjgeography.ObjectID`
 
 	return QueryRows(queryStr)
 }
 
-func GetMedia(whereStr string, limStr string, rowCount int) []map[string]interface{} {
-	queryStr := `select apimedia.* from apimediaxrefs 
-		INNER JOIN apiobjects ON apimediaxrefs.ID = apiobjects.ObjectID 
-		INNER JOIN apimedia ON apimediaxrefs.MediaMasterID = apimedia.MediaMasterID `
-
-	queryStr += whereStr + limStr
+func GetMedia() []map[string]interface{} {
+	queryStr := `select apimedia.* from apiobjmediaxrefs 
+		INNER JOIN queryView as apiobjects ON apiobjmediaxrefs.ID = apiobjects.ObjectID 
+		INNER JOIN apimedia ON apiobjmediaxrefs.MediaMasterID = apimedia.MediaMasterID`
 
 	return QueryRows(queryStr)
 }
 
-//returns data from the apiconobjxrefs data
-func GetTerms(whereStr string, limStr string, rowCount int) []map[string]interface{} {
-	queryStr := "select * from apitermsobjxrefs INNER JOIN apiobjects " + whereStr + limStr
+//returns data from the apiobjconxrefs data
+func GetTerms() []map[string]interface{} {
+	queryStr := "select * from apiobjtermsxrefs INNER JOIN queryView as apiobjects WHERE apiobjects.ObjectID = apiobjtermsxrefs.ObjectID"
 
 	return QueryRows(queryStr)
 }
 
-func GetTitles(whereStr string, limStr string, rowCount int) []map[string]interface{} {
-	queryStr := "select * from apititleobjxrefs INNER JOIN apiobjects " + whereStr + limStr
+func GetTitles() []map[string]interface{} {
+	queryStr := "select * from apiobjtitlexrefs INNER JOIN queryView as apiobjects where apiobjects.ObjectID = apiobjtitlexrefs.ObjectID"
 
 	return QueryRows(queryStr)
 }
 
-//returns data from the apiconobjxrefs data
+//returns data from the apiobjconxrefs data
 func GetUri(constituentID int, channel chan interface{}) {
 	queryStr := "select * from apiconuris where ConstituentID = " + strconv.Itoa(constituentID)
 	rows, err := globalDB.Queryx(queryStr)
@@ -245,9 +238,6 @@ func AddSubObjects(curResult map[string]interface{}, tableName string, subResult
 	subArray := make([]interface{}, 0)
 
 	for subIdx < len(subResults) && curResult["ObjectID"] == subResults[subIdx]["ObjectID"] {
-		fmt.Println("Cur object id: " + strconv.Itoa(curResult["ObjectID"].(int)))
-		fmt.Println("Bib object id: " + strconv.Itoa(subResults[subIdx]["ObjectID"].(int)))
-
 		delete(subResults[subIdx], "ObjectID")
 		subArray = append(subArray, subResults[subIdx])
 		subIdx++
@@ -269,28 +259,34 @@ func AddSubObjects(curResult map[string]interface{}, tableName string, subResult
 
 func QueryObjects(whereStr string, limStr string, rowCount int, results []map[string]interface{}) {
 	bibliographyResults := GetBibliography()
-	constituentResults := GetConstituentsTrunc()
+	//constituentResults := GetConstituentsTrunc()
 	//dimensionResults := GetDimElements(whereStr, limStr, rowCount)
-	//exhibitionResults := GetExhibitions(whereStr, limStr, rowCount)
-	//geographyResults := GetGeography(whereStr, limStr, rowCount)
-	//mediaResults := GetMedia(whereStr, limStr, rowCount)
-	//termResults := GetTerms(whereStr, limStr, rowCount)
-	//titleResults := GetTitles(whereStr, limStr, rowCount)
+	exhibitionResults := GetExhibitions()
+	geographyResults := GetGeography()
+	mediaResults := GetMedia()
+	termResults := GetTerms()
+	titleResults := GetTitles()
 
 	bibIdx := 0
-	constituentIdx := 0
+	exhIdx := 0
+	geoIdx := 0
+	mediaIdx := 0
+	termIdx := 0
+	titleIdx := 0
+	//constituentIdx := 0
 
 	for i := 0; i < len(results); i++ {
-		fmt.Println(i)
 		bibIdx = AddSubObjects(results[i], "Bibliography", bibliographyResults, bibIdx)
-		constituentIdx = AddSubObjects(results[i], "Constituents", constituentResults, constituentIdx)
+		//constituentIdx = AddSubObjects(results[i], "Constituents", constituentResults, constituentIdx)
 		//results[i]["Constituents"] = constituentResults[i]
 		//results[i]["Dimensions"] = dimensionResults[i]
-		//results[i]["Exhibitions"] = exhibitionResults[i]
-		//results[i]["Geography"] = geographyResults[i]
+		exhIdx = AddSubObjects(results[i], "Exhibitions", exhibitionResults, exhIdx)
+		geoIdx = AddSubObjects(results[i], "Geography", geographyResults, geoIdx)
+
+		mediaIdx = AddSubObjects(results[i], "Media", mediaResults, mediaIdx)
 		//results[i]["Media"] = mediaResults[i]
-		//results[i]["Terms"] = termResults[i]
-		//results[i]["Titles"] = titleResults[i]
+		termIdx = AddSubObjects(results[i], "Terms", termResults, termIdx)
+		titleIdx = AddSubObjects(results[i], "Titles", titleResults, titleIdx)
 	}
 }
 
@@ -341,7 +337,6 @@ func GetLimString(specialParameters map[string]int) string {
 func MakeView(tableName string, whereStr string, limitStr string) {
 	selectStatement := "select * from " + tableName + " " + whereStr + " " + limitStr
 	query := "create view queryView as " + selectStatement
-	fmt.Println(query)
 
 	_, err := globalDB.Query("DROP VIEW IF EXISTS queryView")
 	if err != nil {
