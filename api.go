@@ -5,11 +5,11 @@
 package main
 
 import (
-	"./outputFormatter"
-	"./sqlParser"
-	"./urlParser"
 	"encoding/json"
 	"flag"
+	"github.com/cjqian/princeton_museum_api/outputFormatter"
+	"github.com/cjqian/princeton_museum_api/sqlParser"
+	"github.com/cjqian/princeton_museum_api/urlParser"
 	//"fmt"
 	"io/ioutil"
 	"net"
