@@ -1,8 +1,8 @@
 package sqlParser
 
 import (
-	"github.com/cjqian/princeton_museum_api/sqlParser/mysql"
-	"github.com/cjqian/princeton_museum_api/sqlParser/sqlx"
+	"github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 	//"fmt"
 	"strconv"
 	//"encoding/json"
