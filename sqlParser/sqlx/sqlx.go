@@ -11,7 +11,8 @@ import (
 	"reflect"
 	"strings"
 
-	"./reflectx"
+	"github.com/cjqian/princeton_museum_api/sqlParser/sqlx/reflectx"
+	//"./reflectx"
 )
 
 // Although the NameMapper is convenient, in practice it should not
