@@ -1,10 +1,11 @@
 package sqlParser
 
 import (
-	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	//"fmt"
 	"strconv"
+
+	//"github.com/go-sql-driver/mysql"
 	//"encoding/json"
 )
 
