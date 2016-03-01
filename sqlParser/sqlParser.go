@@ -1,11 +1,11 @@
 package sqlParser
 
 import (
+	"fmt"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
-	//"fmt"
 	"strconv"
 
-	//"github.com/go-sql-driver/mysql"
 	//"encoding/json"
 )
 
@@ -112,6 +112,7 @@ func GetColumnValues(tableName string, columnName string) []string {
  ********************************************************************************/
 func QueryRows(queryStr string) []map[string]interface{} {
 	rows, err := globalDB.Queryx(queryStr)
+	fmt.Printf(queryStr)
 	if err != nil {
 		panic(err)
 	}
@@ -259,36 +260,36 @@ func AddSubObjects(curResult map[string]interface{}, tableName string, subResult
 //}
 
 func QueryObjects(whereStr string, limStr string, rowCount int, results []map[string]interface{}) {
-	bibliographyResults := GetBibliography()
+	//bibliographyResults := GetBibliography()
 	//constituentResults := GetConstituentsTrunc()
 	//dimensionResults := GetDimElements(whereStr, limStr, rowCount)
-	exhibitionResults := GetExhibitions()
-	geographyResults := GetGeography()
-	mediaResults := GetMedia()
-	termResults := GetTerms()
-	titleResults := GetTitles()
+	//exhibitionResults := GetExhibitions()
+	//geographyResults := GetGeography()
+	//mediaResults := GetMedia()
+	//termResults := GetTerms()
+	//titleResults := GetTitles()
 
-	bibIdx := 0
-	exhIdx := 0
-	geoIdx := 0
-	mediaIdx := 0
-	termIdx := 0
-	titleIdx := 0
+	//bibIdx := 0
 	//constituentIdx := 0
+	//exhIdx := 0
+	//geoIdx := 0
+	//mediaIdx := 0
+	//termIdx := 0
+	//titleIdx := 0
 
-	for i := 0; i < len(results); i++ {
-		bibIdx = AddSubObjects(results[i], "Bibliography", bibliographyResults, bibIdx)
-		//constituentIdx = AddSubObjects(results[i], "Constituents", constituentResults, constituentIdx)
-		//results[i]["Constituents"] = constituentResults[i]
-		//results[i]["Dimensions"] = dimensionResults[i]
-		exhIdx = AddSubObjects(results[i], "Exhibitions", exhibitionResults, exhIdx)
-		geoIdx = AddSubObjects(results[i], "Geography", geographyResults, geoIdx)
+	//for i := 0; i < len(results); i++ {
+	//bibIdx = AddSubObjects(results[i], "Bibliography", bibliographyResults, bibIdx)
+	//constituentIdx = AddSubObjects(results[i], "Constituents", constituentResults, constituentIdx)
+	//results[i]["Constituents"] = constituentResults[i]
+	//results[i]["Dimensions"] = dimensionResults[i]
+	//exhIdx = AddSubObjects(results[i], "Exhibitions", exhibitionResults, exhIdx)
+	//geoIdx = AddSubObjects(results[i], "Geography", geographyResults, geoIdx)
 
-		mediaIdx = AddSubObjects(results[i], "Media", mediaResults, mediaIdx)
-		//results[i]["Media"] = mediaResults[i]
-		termIdx = AddSubObjects(results[i], "Terms", termResults, termIdx)
-		titleIdx = AddSubObjects(results[i], "Titles", titleResults, titleIdx)
-	}
+	//mediaIdx = AddSubObjects(results[i], "Media", mediaResults, mediaIdx)
+	//results[i]["Media"] = mediaResults[i]
+	//termIdx = AddSubObjects(results[i], "Terms", termResults, termIdx)
+	//titleIdx = AddSubObjects(results[i], "Titles", titleResults, titleIdx)
+	//}
 }
 
 /*********************************************************************************
@@ -336,25 +337,27 @@ func GetLimString(specialParameters map[string]int) string {
 
 //makes a view with name "queryView", no return value
 func MakeView(tableName string, whereStr string, limitStr string) {
-	selectStatement := "select * from " + tableName + " " + whereStr + " " + limitStr
-	query := "create view queryView as " + selectStatement
-
 	_, err := globalDB.Query("DROP VIEW IF EXISTS queryView")
 	if err != nil {
 		panic(err)
 	}
 
+	fmt.Println("Dropped queryView")
+
+	selectStatement := "select * from " + tableName + " " + whereStr + " " + limitStr
+	query := "create view queryView as " + selectStatement
 	_, err = globalDB.Query(query)
 	if err != nil {
 		panic(err)
 	}
 
+	fmt.Println("made new queryView")
 	//now, there should be a view with the name "queryView"
 }
 
 func Get(tableName string, tableParameters []string, specialParameters map[string]int) ([]map[string]interface{}, error) {
+	fmt.Println("HELLO!")
 	//pagination
-
 	regStr := ""
 	//joinStr := ""
 
@@ -372,27 +375,30 @@ func Get(tableName string, tableParameters []string, specialParameters map[strin
 	//}
 
 	whereStr := GetWhereString(tableParameters)
+	fmt.Println(whereStr)
 	limStr := GetLimString(specialParameters)
+	fmt.Println(limStr)
+
 	//make the view
 	MakeView(tableName, whereStr, limStr)
-
+	fmt.Println("Made the view")
 	//queryStr := "select " + regStr + joinStr + " from queryView"
 	queryStr := "select " + regStr + " from queryView"
-
+	fmt.Println(queryStr)
 	//get number of rows
-	rowCount := GetNumRows(tableName, whereStr, limStr)
+	//rowCount := GetNumRows(tableName, whereStr, limStr)
 
 	//map into an array of type map[colName]value
 	rowArray := QueryRows(queryStr)
 
 	//query the special tables
-	if tableName == "apiobjects" {
-		QueryObjects(whereStr, limStr, rowCount, rowArray)
-	} else if tableName == "apiconstituents" {
-		//QueryConstituents(whereStr, size)
-	}
+	//if tableName == "apiobjects" {
+	//QueryObjects(whereStr, limStr, rowCount, rowArray)
+	//} else if tableName == "apiconstituents" {
+	//QueryConstituents(whereStr, size)
+	//}
 
 	//then, remove the view
-
+	fmt.Println("Done")
 	return rowArray, nil
 }
