@@ -14,7 +14,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	//"os"
+	"os"
 )
 
 var (
@@ -122,7 +122,8 @@ func main() {
 
 	if *addr {
 		//runs on home
-		l, err := net.Listen("tcp", "127.0.0.1:0")
+		l, err := net.Listen("tcp", os.Getenv("PORT"))
+		//l, err := net.Listen("tcp", "127.0.0.1:0")
 		if err != nil {
 			panic(err)
 		}
