@@ -1,0 +1,21 @@
+{
+	"ImportPath": "github.com/cjqian/princeton_museum_api",
+	"GoVersion": "go1.6",
+	"Deps": [
+		{
+			"ImportPath": "github.com/go-sql-driver/mysql",
+			"Comment": "v1.2-177-g71f003c",
+			"Rev": "71f003c6e927d2550713e7637affb769977ece78"
+		},
+		{
+			"ImportPath": "github.com/jmoiron/sqlx",
+			"Comment": "sqlx-v1.1-61-g398dd58",
+			"Rev": "398dd5876282499cdfd4cb8ea0f31a672abe9495"
+		},
+		{
+			"ImportPath": "github.com/jmoiron/sqlx/reflectx",
+			"Comment": "sqlx-v1.1-61-g398dd58",
+			"Rev": "398dd5876282499cdfd4cb8ea0f31a672abe9495"
+		}
+	]
+}
