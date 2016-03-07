@@ -135,6 +135,9 @@ func main() {
 		s.Serve(l)
 		return
 	}
-
-	http.ListenAndServe(":8080", nil)
+	fmt.Println(":" + os.Getenv("PORT"))
+	err := http.ListenAndServe(":"+os.Getenv("PORT"), nil)
+	if err != nil {
+		panic(err)
+	}
 }
