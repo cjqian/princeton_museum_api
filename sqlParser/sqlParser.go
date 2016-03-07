@@ -5,7 +5,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"strconv"
-
 	//"encoding/json"
 )
 
@@ -112,7 +111,7 @@ func GetColumnValues(tableName string, columnName string) []string {
  ********************************************************************************/
 func QueryRows(queryStr string) []map[string]interface{} {
 	rows, err := globalDB.Queryx(queryStr)
-	fmt.Printf(queryStr)
+	fmt.Printf(queryStr + "\n")
 	if err != nil {
 		panic(err)
 	}
@@ -157,11 +156,10 @@ func GetConstituentsTrunc() []map[string]interface{} {
 	return QueryRows(queryStr)
 }
 
-func GetDimElements(whereStr string, limStr string, rowCount int) []map[string]interface{} {
+func GetDimElements() []map[string]interface{} {
 	queryStr := `select apidimelements.*, apiobjdimxrefs.* from apiobjdimxrefs 
-		INNER JOIN apiobjects ON apiobjdimxrefs.ObjectID = apiobjects.ObjectID 
+		INNER JOIN queryView as apiobjects ON apiobjdimxrefs.ObjectID = apiobjects.ObjectID 
 		INNER JOIN apidimelements ON apiobjdimxrefs.DimItemElemXrefID = apidimelements.DimItemElemXrefID `
-	queryStr += whereStr + limStr
 
 	return QueryRows(queryStr)
 }
@@ -183,7 +181,7 @@ func GetGeography() []map[string]interface{} {
 
 func GetMedia() []map[string]interface{} {
 	queryStr := `select apimedia.* from apiobjmediaxrefs 
-		INNER JOIN queryView as apiobjects ON apiobjmediaxrefs.ID = apiobjects.ObjectID 
+		INNER JOIN queryView as apiobjects ON apiobjmediaxrefs.ObjectID = apiobjects.ObjectID 
 		INNER JOIN apimedia ON apiobjmediaxrefs.MediaMasterID = apimedia.MediaMasterID`
 
 	return QueryRows(queryStr)
@@ -260,36 +258,54 @@ func AddSubObjects(curResult map[string]interface{}, tableName string, subResult
 //}
 
 func QueryObjects(whereStr string, limStr string, rowCount int, results []map[string]interface{}) {
-	//bibliographyResults := GetBibliography()
-	//constituentResults := GetConstituentsTrunc()
-	//dimensionResults := GetDimElements(whereStr, limStr, rowCount)
-	//exhibitionResults := GetExhibitions()
-	//geographyResults := GetGeography()
-	//mediaResults := GetMedia()
-	//termResults := GetTerms()
-	//titleResults := GetTitles()
+	fmt.Println("Bibliography")
+	bibliographyResults := GetBibliography()
 
-	//bibIdx := 0
-	//constituentIdx := 0
-	//exhIdx := 0
-	//geoIdx := 0
-	//mediaIdx := 0
-	//termIdx := 0
-	//titleIdx := 0
+	fmt.Println("Constituents")
+	constituentResults := GetConstituentsTrunc()
 
-	//for i := 0; i < len(results); i++ {
-	//bibIdx = AddSubObjects(results[i], "Bibliography", bibliographyResults, bibIdx)
-	//constituentIdx = AddSubObjects(results[i], "Constituents", constituentResults, constituentIdx)
-	//results[i]["Constituents"] = constituentResults[i]
-	//results[i]["Dimensions"] = dimensionResults[i]
-	//exhIdx = AddSubObjects(results[i], "Exhibitions", exhibitionResults, exhIdx)
-	//geoIdx = AddSubObjects(results[i], "Geography", geographyResults, geoIdx)
+	fmt.Println("DimElements")
+	dimensionResults := GetDimElements()
 
-	//mediaIdx = AddSubObjects(results[i], "Media", mediaResults, mediaIdx)
-	//results[i]["Media"] = mediaResults[i]
-	//termIdx = AddSubObjects(results[i], "Terms", termResults, termIdx)
-	//titleIdx = AddSubObjects(results[i], "Titles", titleResults, titleIdx)
-	//}
+	fmt.Println("Exhibitions")
+	exhibitionResults := GetExhibitions()
+
+	fmt.Println("Geography")
+	geographyResults := GetGeography()
+
+	fmt.Println("Media")
+	mediaResults := GetMedia()
+
+	fmt.Println("Terms")
+	termResults := GetTerms()
+
+	fmt.Println("Titles")
+	titleResults := GetTitles()
+
+	bibIdx := 0
+	constituentIdx := 0
+	dimIdx := 0
+	exhIdx := 0
+	geoIdx := 0
+	mediaIdx := 0
+	termIdx := 0
+	titleIdx := 0
+	for i := 0; i < len(results); i++ {
+		fmt.Println(i)
+
+		bibIdx = AddSubObjects(results[i], "Bibliography", bibliographyResults, bibIdx)
+		constituentIdx = AddSubObjects(results[i], "Constituents", constituentResults, constituentIdx)
+		dimIdx = AddSubObjects(results[i], "Dimensions", dimensionResults, dimIdx)
+		//results[i]["Constituents"] = constituentResults[i]
+		//results[i]["Dimensions"] = dimensionResults[i]
+		exhIdx = AddSubObjects(results[i], "Exhibitions", exhibitionResults, exhIdx)
+		geoIdx = AddSubObjects(results[i], "Geography", geographyResults, geoIdx)
+
+		mediaIdx = AddSubObjects(results[i], "Media", mediaResults, mediaIdx)
+		//results[i]["Media"] = mediaResults[i]
+		termIdx = AddSubObjects(results[i], "Terms", termResults, termIdx)
+		titleIdx = AddSubObjects(results[i], "Titles", titleResults, titleIdx)
+	}
 }
 
 /*********************************************************************************
@@ -342,8 +358,6 @@ func MakeView(tableName string, whereStr string, limitStr string) {
 		panic(err)
 	}
 
-	fmt.Println("Dropped queryView")
-
 	selectStatement := "select * from " + tableName + " " + whereStr + " " + limitStr
 	query := "create view queryView as " + selectStatement
 	_, err = globalDB.Query(query)
@@ -351,12 +365,10 @@ func MakeView(tableName string, whereStr string, limitStr string) {
 		panic(err)
 	}
 
-	fmt.Println("made new queryView")
 	//now, there should be a view with the name "queryView"
 }
 
 func Get(tableName string, tableParameters []string, specialParameters map[string]int) ([]map[string]interface{}, error) {
-	fmt.Println("HELLO!")
 	//pagination
 	regStr := ""
 	//joinStr := ""
@@ -375,30 +387,28 @@ func Get(tableName string, tableParameters []string, specialParameters map[strin
 	//}
 
 	whereStr := GetWhereString(tableParameters)
-	fmt.Println(whereStr)
 	limStr := GetLimString(specialParameters)
-	fmt.Println(limStr)
 
 	//make the view
 	MakeView(tableName, whereStr, limStr)
-	fmt.Println("Made the view")
+
 	//queryStr := "select " + regStr + joinStr + " from queryView"
 	queryStr := "select " + regStr + " from queryView"
-	fmt.Println(queryStr)
+
 	//get number of rows
-	//rowCount := GetNumRows(tableName, whereStr, limStr)
+	rowCount := GetNumRows(tableName, whereStr, limStr)
 
 	//map into an array of type map[colName]value
 	rowArray := QueryRows(queryStr)
 
 	//query the special tables
-	//if tableName == "apiobjects" {
-	//QueryObjects(whereStr, limStr, rowCount, rowArray)
+	if tableName == "apiobjects" {
+		QueryObjects(whereStr, limStr, rowCount, rowArray)
+	}
 	//} else if tableName == "apiconstituents" {
 	//QueryConstituents(whereStr, size)
 	//}
 
 	//then, remove the view
-	fmt.Println("Done")
 	return rowArray, nil
 }
