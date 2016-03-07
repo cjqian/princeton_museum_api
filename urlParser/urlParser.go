@@ -109,7 +109,8 @@ func ParseURL(url string) Request {
 		//set special paraemters
 		if _, ok := r.SpecialParameters["size"]; ok {
 		} else {
-			r.SpecialParameters["size"] = 1000000
+			r.SpecialParameters["size"] = 10
+			//r.SpecialParameters["size"] = 1000000
 		}
 
 		if _, ok := r.SpecialParameters["page"]; ok {

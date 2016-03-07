@@ -7,21 +7,26 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"github.com/cjqian/princeton_museum_api/outputFormatter"
 	"github.com/cjqian/princeton_museum_api/sqlParser"
 	"github.com/cjqian/princeton_museum_api/urlParser"
-	//"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
-	"os"
+	//"os"
 )
 
 var (
-	addr     = flag.Bool("addr", false, "find open address and print to final-port.txt")
-	username = os.Args[1]
-	password = os.Args[2]
-	database = os.Args[3]
+	addr = flag.Bool("addr", false, "find open address and print to final-port.txt")
+	/*
+		username = os.Args[1]
+		password = os.Args[2]
+		database = os.Args[3]
+	*/
+	username = "root"
+	password = "helloworld"
+	database = "puamapi"
 
 	//initializing the database connects and writes a column type map
 	//(see sqlParser for more details)
@@ -33,8 +38,6 @@ func infoHandler(w http.ResponseWriter, r *http.Request) {
 
 	path := r.URL.Path[1:]
 	request := urlParser.ParseURL(path)
-
-	//fmt.Println(request)
 
 	tableName := request.TableName
 	parameters := request.Parameters
@@ -92,6 +95,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 
 	//GETS the request
 	if tableName != "" {
+		fmt.Println("Getting request")
 		records, _ = sqlParser.Get(tableName, tableParameters, specialParameters)
 		/*if err != nil {*/
 		/*errString = err.Error()*/
@@ -100,7 +104,10 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 		records = nil
 	}
 
+	fmt.Println("Getting numbers, lim String")
 	numResults := sqlParser.GetNumRows(tableName, sqlParser.GetWhereString(tableParameters), sqlParser.GetLimString(specialParameters))
+
+	fmt.Println("Making wrapper")
 	resp := outputFormatter.MakeApiWrapper(request, records, numResults, specialParameters)
 	enc := json.NewEncoder(w)
 	enc.Encode(resp)
