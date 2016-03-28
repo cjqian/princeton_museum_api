@@ -115,6 +115,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	//fmt.Println("Starting server.")
+	//fmt.Println(os.Getenv("PORT"))	
 	flag.Parse()
 
 	http.HandleFunc("/api/", apiHandler)
@@ -122,8 +123,8 @@ func main() {
 
 	if *addr {
 		//runs on home
-		l, err := net.Listen("tcp", os.Getenv("PORT"))
-		//l, err := net.Listen("tcp", "127.0.0.1:0")
+		//l, err := net.Listen("tcp", os.Getenv("PORT"))
+		l, err := net.Listen("tcp", "127.0.0.1:0")
 		if err != nil {
 			panic(err)
 		}
@@ -136,7 +137,7 @@ func main() {
 		return
 	}
 	fmt.Println(":" + os.Getenv("PORT"))
-	err := http.ListenAndServe(":"+os.Getenv("PORT"), nil)
+	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		panic(err)
 	}
