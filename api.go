@@ -36,20 +36,25 @@ var (
 func infoHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
+	fmt.Println(r.URL.Path)
 	path := r.URL.Path[1:]
 	request := urlParser.ParseURL(path)
-
+	fmt.Println(request)
 	tableName := request.TableName
-	parameters := request.Parameters
+	tableParameters := request.Parameters
 	specialParameters := request.SpecialParameters
 
 	var resp interface{}
+	fmt.Println(tableName)
+	fmt.Println(tableParameters)
+	fmt.Println(specialParameters)
+
 	if tableName == "" {
 		records := sqlParser.GetTableNames()
 		numResults := len(records)
 		resp = outputFormatter.MakeApiWrapper(request, records, numResults, specialParameters)
 
-	} else if len(parameters) <= 0 {
+	} else if len(tableParameters) <= 0 {
 		records := sqlParser.GetColumnNames(tableName)
 		numResults := len(records)
 		resp = outputFormatter.MakeApiWrapper(request, records, numResults, specialParameters)
@@ -57,7 +62,7 @@ func infoHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		records := make(map[string][]string, 0)
 		rowWrappers := make(map[string]interface{}, 0)
-		for _, columnName := range parameters {
+		for _, columnName := range tableParameters {
 			records[columnName] = sqlParser.GetColumnValues(tableName, columnName)
 
 			curNumResults := len(records[columnName])
@@ -67,6 +72,8 @@ func infoHandler(w http.ResponseWriter, r *http.Request) {
 		resp = outputFormatter.MakeApiWrapper(request, rowWrappers, numResults, specialParameters)
 
 	}
+
+	fmt.Println(resp)
 
 	enc := json.NewEncoder(w)
 	enc.Encode(resp)
@@ -115,7 +122,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	//fmt.Println("Starting server.")
-	//fmt.Println(os.Getenv("PORT"))	
+	//fmt.Println(os.Getenv("PORT"))
 	flag.Parse()
 
 	http.HandleFunc("/api/", apiHandler)

@@ -3,8 +3,8 @@ package urlParser
 /******************************************************************
 * urlParser contains:
 * * type Request struct,  which stores request information
-  * * table/view from which information is queried
-  * * parameters (in []string) that narrows table/view query field
+* * table/view from which information is queried
+* * parameters (in []string) that narrows table/view query field
 * * ParseURL(urlString), which takes in a URL and parses it into a Request
 *****************************************************************/
 
@@ -33,7 +33,7 @@ type Request struct {
 //makes a new request given a string url
 func ParseURL(url string) Request {
 	r := Request{"", "", make([]string, 0), make(map[string]int, 0)}
-
+	fmt.Println(url)
 	url = strings.ToLower(url)
 
 	//replace less than/greater than symbols in url encode
@@ -48,7 +48,6 @@ func ParseURL(url string) Request {
 	urlSections := strings.Split(url, "/")
 
 	r.Type = urlSections[0]
-
 	if r.Type == "api" {
 		//title exists
 		if len(urlSections) > 1 {
@@ -98,7 +97,6 @@ func ParseURL(url string) Request {
 				}
 			}
 		}
-
 		//second potential urlSection (after tableName & parameters) is specified id
 		//by nature of SQLParser, this is considered as a parameter
 		if len(urlSections) > 2 && urlSections[2] != "" {
